@@ -25,6 +25,7 @@ def remove_beginning(text, i):
 
 sno = nltk.stem.SnowballStemmer('english')
 stop = set(stopwords.words('english'))
+
 def stop_and_stem(string):
 	#tokenize
 	words = string.split()
@@ -35,6 +36,13 @@ def stop_and_stem(string):
 	new_text = " ".join(word_list)
 	return new_text
 
+def remove_punctuation(text):
+	text = re.sub("-", " ", text)
+	text = re.sub("["+string.punctuation+"]", "", text)
+	text = re.sub("\\\\", "", text)
+	return text
+
+
 def clean(hrc_data, bad_strings):
 	hrc_copy = hrc_data.copy()
 	for i in range(len(hrc_copy)):
@@ -42,9 +50,7 @@ def clean(hrc_data, bad_strings):
 		new_text = remove_beginning(new_text, i)
 		for bad in bad_strings:
 			new_text = re.sub(bad, "", new_text)
-		new_text = re.sub("-", " ", new_text)
-		new_text = re.sub("["+string.punctuation+"]", "", new_text)
-		new_text = re.sub("\\\\", "", new_text)
+		new_text = remove_punctuation(new_text)	
 		new_text = stop_and_stem(new_text)
 		hrc_copy.loc[i, "text"] = new_text
 	return hrc_copy
@@ -54,42 +60,33 @@ cleaned = clean(hrc_train, bad_strings)
 
 
 def unique(df):
-	uniques = []
-	sno = nltk.stem.SnowballStemmer('english')
+	word_list = []
 	for i in range(len(df)):
-		word_list = df.iloc[i].text.split()
-		uniques += word_list
-	return list(set(uniques))
+		word_list += df.iloc[i].text.split()
+	return list(set(word_list))
 
 
 
-a = unique(cleaned)
-print "length of a = ", len(a)
+uniques = unique(cleaned)
+print "There are ", len(uniques), " unique words."
 
 def get_sender(df, index):
 	return df.iloc[index].id
 
-def counts(text, unique_words):
-	words = text.split()
-	wordCount = Counter(words)
-	return wordCount
+def counts(text):
+	return Counter(text.split())
 
 
 def feature_matrix(df, unique_words):
-	fm = np.zeros((len(df), len(unique_words)))
+	dict_list = []
 	for i in range(len(df)):
-		wordCount = counts(df.iloc[i].text, unique_words)
-		for j in range(len(unique_words)):
-			try:
-				fm[i][j] = wordCount[unique_words[j]]
-			except KeyError:
-				fm[i][j] = 0
-
+		dict_list += [counts(df.iloc[i].text)]
+	fm = pd.DataFrame(dict_list)	
+	fm = fm.fillna(value=0).astype(dtype=int)
 	return fm
 
+fm = feature_matrix(cleaned, uniques)
+fm.shape
+fm.head()
 
-test = feature_matrix(cleaned, a)
-Y = numpy.asarray[get_sender(cleaned, i) for i in range(3505)])
-
-numpy.savetxt("trainingData.csv",a, delimiter=",")
-numpy.savetxt("trainingLabel.csv",a,delimiter=",")
+#fm.to_csv("test.csv") 

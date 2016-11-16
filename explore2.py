@@ -9,7 +9,7 @@ import numpy as np
 hrc_train = pd.read_csv("HRC_train.tsv", sep="\t", header=None, names=["id", "text"])
 
 
-bad_strings = ["unclassified u.s. department of state case no. ............ doc no. c........ date: .......... state dept. . produced to house select benghazi comm. subject to agreement on sensitive information & redactions. no foia waiver. release in full from ,  d <cd@state.gov " , " unclassified u.s. department of state case no. ............ doc no. c........ date: .......... state dept. . produced to house select benghazi comm. subject to agreement on sensitive information & redactions. no foia waiver. state..........." , "unclassified u.s. department of state case no. ............ doc no. c........ date: .......... state dept. . produced to house select benghazi comm. subject to agreement on sensitive information & redactions. no foia waiver. release in part b. ","unclassified u.s. department of state case no. ............ doc no. c........ date: .......... state dept. . produced to house select benghazi comm. subject to agreement on sensitive information & redactions. no foia waiver. state...........", "unclassified u.s. department of state case no. ............ doc no. c........ date: .......... state dept. . produced to house select benghazi comm. subject to agreement on sensitive information & redactions. no foia waiver.", "unclassified u.s. department of state case no. ............ doc no. c........ date: .......... state dept. . produced to house select benghazi comm. subject to agreement on sensitive information & redactions. no foia waiver. state........... ","unclassified u.s. department of state case no. ............ doc no. c........ date: .......... ","unclassified u.s. department of state case no. ............ doc no. c........ state dept. . produced to house select benghazi comm. date: .......... subject to agreement on sensitive information & redactions. no foia waiver. state...........", " unclassified u.s. department of state case no. ............. doc no. c........ date: .......... state dept. . produced to house select benghazi comm. subject to agreement on sensitive information & redactions. no foia waiver. state...........", "unclassified u.s. department of state case no ............ doc no c........ state dept . produced to house select benghazi comm date .......... subject to agreement on sensitive information & redactions no foia waiver state...........","unclassified u.s. department of state case no ............ doc no c........ date .......... subject to agreement on sensitive information & redactions no foia waiver state........... state dept. . produced to house select benghazi comm.", "unclassified u.s. department of state case no ............ doc no. c........ date: ..........","unclassified u.s. department of state case no ............ b. b. b. doc no. c........ state dept. . produced to house select benghazi comm. date: .......... subject to agreement on sensitive information & redactions. no foia waiver. state...........", "unclassified u.s. department of state case no:............ doc no. c........ date: ..........", "unclassified u.s. department of state base no. ............ doc no. c........ date: ..........", "unclassified u.s. department of state case no. . ............ doc no. c........ date: ..........", "unclassified u.s. department of state case no. ' ............ doc no. c........ date: ..........","unclassified u.s. department of state case no. ............. doc no. c........ date: ..........", "unclassified u.s. department of state case no. ............... doc no. c........ date: ..........","unclassified u.s. department of state case no............. doc no. c........ date: ..........","unclassified u.s. department of state case no............ doc no. c........ date: ..........","unclassified u.s. department of state case no................... doc no. c........ date: ..........", "unclassified u.s. department of state case no. .............. doc no. c........ date: ..........", "unclassified u.s. department of state case no. ................ doc no. c........ date: ..........","unclassified u.s. department of state case no................ doc no. c........ date: ..........","unclassified u.s. department of state case no............... doc no. c........ date: ..........", "unclassified u.s. department of state case no. ............ doc no. c........ date: ..........","unclassified u.s. department of state case no. ............", "doc no. c........ date: ..........", "unclassified u.s. department of state case no ............"," unclassified u.s. department of state case ................", " unclassified u.s. department of state case no.............."] 
+bad_strings2 = ["unclassified u.s. department of state", "case no. ............", "doc no. c........", "date: ..........","state dept. . produced to house select benghazi comm.", "subject to agreement on sensitive information & redactions.","no foia waiver state...........","no foia waiver.",  "unclassified us department of state"]
 
 
 
@@ -47,15 +47,19 @@ def clean(hrc_data, bad_strings):
 	hrc_copy = hrc_data.copy()
 	for i in range(len(hrc_copy)):
 		new_text = hrc_copy.iloc[i].text
+		#remove us department of state stuff at beginning. 
 		new_text = remove_beginning(new_text, i)
+		#remove undesirable sets of words 
 		for bad in bad_strings:
 			new_text = re.sub(bad, "", new_text)
+		#remove punctuation
 		new_text = remove_punctuation(new_text)	
+		#remove stop words and punctuation
 		new_text = stop_and_stem(new_text)
 		hrc_copy.loc[i, "text"] = new_text
 	return hrc_copy
 
-cleaned = clean(hrc_train, bad_strings)
+cleaned = clean(hrc_train, bad_strings2)
 
 
 
@@ -77,7 +81,7 @@ def counts(text):
 	return Counter(text.split())
 
 
-def feature_matrix(df, unique_words):
+def feature_matrix(df):
 	dict_list = []
 	for i in range(len(df)):
 		dict_list += [counts(df.iloc[i].text)]
@@ -85,8 +89,8 @@ def feature_matrix(df, unique_words):
 	fm = fm.fillna(value=0).astype(dtype=int)
 	return fm
 
-fm = feature_matrix(cleaned, uniques)
-fm.shape
-fm.head()
+fm = feature_matrix(cleaned)
+print fm.shape
+print fm.head()
 
 #fm.to_csv("test.csv") 

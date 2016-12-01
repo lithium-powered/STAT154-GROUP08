@@ -17,33 +17,37 @@ def getRFEst(n_est, max_feat):
 def getCV(estimator, data, labels):
 	return np.mean(cross_validation.cross_val_score(estimator, data, labels, cv = 5))
 
-def getBestRFParam(data, labels, n_est_Arr = [1,2,3,4,5,6,7,8,9,10,100,200], 
-		max_feat_Arr=[1,2,3,4,5,6,7,8,9,10,100,300]):
-	minCV = float('inf')
-	minParam = [1,1]
+def getBestRFParam(data, labels, n_est_Arr = [1,10,100,200,300,500,1000], 
+		max_feat_Arr=[1,10,100,300,500,1000]):
+	maxCV = float('-inf')
+	maxParam = [1,1]
 	for n_est in n_est_Arr:
 		for max_feat in max_feat_Arr:
 			rf = getRFEst(n_est, max_feat)
 			cv = getCV(rf, data, labels)
-			if cv < minCV:
-				minCV = cv
-				minParam = [n_est, max_feat]
-	return minParam
+			if cv > maxCV:
+				maxCV = cv
+				maxParam = [n_est, max_feat]
+			print([n_est,max_feat,cv])
+	return maxParam
 
 #Return SVM with c parameter.
 def getSVMEst(c):
 	return svm.LinearSVC(C = c)
 
 #Find c between cmin and cmax that returns the min CV of an SVM model.
-def getBestSVMParam(data, labels, cmin = 1, cmax = 100):
-	minCV = float('inf')
+def getBestSVMParam(data, labels, cmin = 1, cmax = 500):
+	minCV = float('-inf')
 	minParam = 0
+	params = []
 	for c in range(cmin,cmax):
 		svm = getSVMEst(c)
 		cv = getCV(svm, data, labels)
-		if cv < minCV:
+		params.append([c,cv])
+		if cv > minCV:
 			minCV = cv
 			minParam = c
+	np.savetxt('svmLargeParam', params,fmt = '%d', delimiter = ',', newline = '\n')
 	return minParam
 
 #returns Kcluster estimator fitted on data.
@@ -102,12 +106,12 @@ featureArray = genfromtxt('featureLabels.csv', delimiter =',', dtype= str)
 #rfClassAcc = getClassAcc(rfEst, trainingData, trainingLabels)
 
 
-#svmParam = getBestSVMParam(trainingData, trainingLabels)
-#svmEst = getSVMEst(svmParam)
-#svmEst.fit(trainingData, trainingLabels)
-#top_10_SVM_Feat = featureArray[getImportantFeatInd(svmEst,10)]
-#svmTotAcc = getAccTot(svmEst, trainingData, trainingLabels)
-#svmClassAcc = getClassAcc(svmEst, trainingData, trainingLabels)
+svmParam = getBestSVMParam(trainingData, trainingLabels)
+svmEst = getSVMEst(svmParam)
+svmEst.fit(trainingData, trainingLabels)
+top_10_SVM_Feat = featureArray[getImportantFeatInd(svmEst,10)]
+svmTotAcc = getAccTot(svmEst, trainingData, trainingLabels)
+svmClassAcc = getClassAcc(svmEst, trainingData, trainingLabels)
 
 #rfEst = getRFEst(2, 4)						#Create RF estimator
 #rfEst.fit(trainingData, trainingLabels)
@@ -115,11 +119,11 @@ featureArray = genfromtxt('featureLabels.csv', delimiter =',', dtype= str)
 #kmeansEst = Kcluster(importantData)
 #kmeansAcc = clusterAcc(kmeansEst, importantData, trainingLabels)
 
-svmEst = getSVMEst(78)
-svmEst.fit(trainingData, trainingLabels)
-testPred = svmEst.predict(testData)
-testPred = np.array([int(i) for i in testPred])
-np.savetxt('predict.txt', testPred,fmt = '%d', delimiter = '\n')
+#svmEst = getSVMEst(78)
+#svmEst.fit(trainingData, trainingLabels)
+#testPred = svmEst.predict(testData)
+#testPred = np.array([int(i) for i in testPred])
+#np.savetxt('predict.txt', testPred,fmt = '%d', delimiter = '\n')
 
 
 

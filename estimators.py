@@ -17,10 +17,11 @@ def getRFEst(n_est, max_feat):
 def getCV(estimator, data, labels):
 	return np.mean(cross_validation.cross_val_score(estimator, data, labels, cv = 5))
 
-def getBestRFParam(data, labels, n_est_Arr = [1,10,100,200,300,500,1000], 
-		max_feat_Arr=[1,10,100,300,500,1000]):
+def getBestRFParam(data, labels, n_est_Arr = [90,95,100,105,110], 
+		max_feat_Arr=[490,495,500,505,510]):
 	maxCV = float('-inf')
 	maxParam = [1,1]
+	params = []
 	for n_est in n_est_Arr:
 		for max_feat in max_feat_Arr:
 			rf = getRFEst(n_est, max_feat)
@@ -28,7 +29,8 @@ def getBestRFParam(data, labels, n_est_Arr = [1,10,100,200,300,500,1000],
 			if cv > maxCV:
 				maxCV = cv
 				maxParam = [n_est, max_feat]
-			print([n_est,max_feat,cv])
+			params.append([n_est,max_feat,cv])
+	np.savetxt('rfZoomedParam.csv', params,fmt = '%d,%d,%f', delimiter = ',', newline = '\n')
 	return maxParam
 
 #Return SVM with c parameter.
@@ -36,19 +38,19 @@ def getSVMEst(c):
 	return svm.LinearSVC(C = c)
 
 #Find c between cmin and cmax that returns the min CV of an SVM model.
-def getBestSVMParam(data, labels, cmin = 1, cmax = 500):
-	minCV = float('-inf')
-	minParam = 0
+def getBestSVMParam(data, labels, cmin = 1, cmax = 50):
+	maxCV = float('-inf')
+	maxParam = 0
 	params = []
-	for c in range(cmin,cmax):
+	for c in np.arange(0.02,1,0.0005):
 		svm = getSVMEst(c)
 		cv = getCV(svm, data, labels)
 		params.append([c,cv])
-		if cv > minCV:
-			minCV = cv
-			minParam = c
-	np.savetxt('svmLargeParam', params,fmt = '%d', delimiter = ',', newline = '\n')
-	return minParam
+		if cv > maxCV:
+			maxCV = cv
+			maxParam = c
+	np.savetxt('svmTinyParam.csv', params,fmt = '%f,%f', delimiter = ',', newline = '\n')
+	return maxParam
 
 #returns Kcluster estimator fitted on data.
 def Kcluster(data):
@@ -85,11 +87,11 @@ def clusterAcc(estimator, trainingData, trainingLabels):
 	return maxAcc
 
 
-trainingData = genfromtxt('fm_reduced.csv', delimiter = ',')
+trainingData = genfromtxt('fm_final.csv', delimiter = ',')
 trainingLabels = genfromtxt('training_labels.csv', delimiter = ',')
-testData = genfromtxt('hrc_test_fm_no_colnames.csv', delimiter = ',')
+testData = genfromtxt('hrc_test_fm_final.csv', delimiter = ',')
 #testLabels = 
-featureArray = genfromtxt('featureLabels.csv', delimiter =',', dtype= str)
+featureArray = genfromtxt('fm_final_colnames.csv', delimiter =',', dtype= str)
 
 
 #labels = np.genfromtxt('data.txt', delimiter=',', usecols=0, dtype=str)
@@ -100,30 +102,32 @@ featureArray = genfromtxt('featureLabels.csv', delimiter =',', dtype= str)
 
 #rfParam = getBestRFParam(trainingData, trainingLabels)			#Get parameters of best RF model
 #rfEst = getRFEst(rfParam[0], rfParam[1])						#Create RF estimator
+#rfEst = getRFEst(110, 495)
 #rfEst.fit(trainingData, trainingLabels)
 #top_10_RF_Feat = featureArray[getImportantFeatInd(rfEst,10)]	#Get top 10 important features of RF model
 #rfTotAcc = getAccTot(rfEst, trainingData, trainingLabels)
 #rfClassAcc = getClassAcc(rfEst, trainingData, trainingLabels)
 
 
-svmParam = getBestSVMParam(trainingData, trainingLabels)
-svmEst = getSVMEst(svmParam)
-svmEst.fit(trainingData, trainingLabels)
-top_10_SVM_Feat = featureArray[getImportantFeatInd(svmEst,10)]
-svmTotAcc = getAccTot(svmEst, trainingData, trainingLabels)
-svmClassAcc = getClassAcc(svmEst, trainingData, trainingLabels)
+#svmParam = getBestSVMParam(trainingData, trainingLabels)
+#svmEst = getSVMEst(svmParam)
+#svmEst = getSVMEst(.015)
+#svmEst.fit(trainingData, trainingLabels)
+#top_10_SVM_Feat = featureArray[getImportantFeatInd(svmEst,10)]
+#svmTotAcc = getAccTot(svmEst, trainingData, trainingLabels)
+#svmClassAcc = getClassAcc(svmEst, trainingData, trainingLabels)
 
-#rfEst = getRFEst(2, 4)						#Create RF estimator
+#rfEst = getRFEst(110, 495)						#Create RF estimator
 #rfEst.fit(trainingData, trainingLabels)
 #importantData = trainingData[:,getImportantFeatInd(rfEst,100)]
 #kmeansEst = Kcluster(importantData)
 #kmeansAcc = clusterAcc(kmeansEst, importantData, trainingLabels)
 
-#svmEst = getSVMEst(78)
-#svmEst.fit(trainingData, trainingLabels)
-#testPred = svmEst.predict(testData)
-#testPred = np.array([int(i) for i in testPred])
-#np.savetxt('predict.txt', testPred,fmt = '%d', delimiter = '\n')
+svmEst = getSVMEst(.015)
+svmEst.fit(trainingData, trainingLabels)
+testPred = svmEst.predict(testData)
+testPred = np.array([int(i) for i in testPred])
+np.savetxt('predict.txt', testPred,fmt = '%d', delimiter = '\n')
 
 
 
